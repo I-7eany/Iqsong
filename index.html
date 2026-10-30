@@ -3313,4 +3313,108 @@
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBLDCZTrnYh_2UmjA_YBu1hD6Pkojy2d94",
+    authDomain: "iqsong.firebaseapp.com",
+    projectId: "iqsong",
+    storageBucket: "iqsong.firebasestorage.app",
+    messagingSenderId: "1049672258234",
+    appId: "1:1049672258234:web:f4a1627f11d2d34a6f2883",
+    measurementId: "G-WK213DJN13"
+  };
+
+  // ضع بريدك الإلكتروني الخاص بالمالك هنا فقط:
+  const OWNER_EMAIL = "owner@iqsong.iq";
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+
+  window.addEventListener("DOMContentLoaded", () => {
+    // 1. إزالة شريط المعاينة العلوي نهائياً عن الزوار
+    const topPreviewBar = document.getElementById("switchRoleOwnerBtn")?.closest("div.bg-slate-950\\/90");
+    if (topPreviewBar) topPreviewBar.remove();
+
+    // 2. إخفاء اختيار الصلاحية اليدوي من نافذة تسجيل الدخول
+    const roleSelectBox = document.getElementById("firebaseRoleSelect")?.parentElement;
+    if (roleSelectBox) roleSelectBox.remove();
+
+    // 3. دالة قفل أو فتح لوحة الإدارة حسب حساب Firebase الحقيقي
+    function applyRealSecurity(user) {
+      const sideAdminBtn = document.getElementById("sidebarAdminBtn");
+      const footerAdminBtn = document.querySelector('footer [data-nav="admin"]');
+
+      if (!user) {
+        state.auth.isLoggedIn = false;
+        state.auth.role = "visitor";
+        if (sideAdminBtn) sideAdminBtn.classList.add("hidden");
+        if (footerAdminBtn) footerAdminBtn.classList.add("hidden");
+      } else {
+        const email = (user.email || "").toLowerCase();
+        state.auth.isLoggedIn = true;
+        state.auth.userEmail = email;
+        state.auth.userName = email.split("@")[0];
+
+        const matchedMod = state.moderators.find(m => m.email.toLowerCase() === email);
+        if (email === OWNER_EMAIL.toLowerCase()) {
+          state.auth.role = "owner";
+          if (sideAdminBtn) sideAdminBtn.classList.remove("hidden");
+          if (footerAdminBtn) footerAdminBtn.classList.remove("hidden");
+        } else if (matchedMod) {
+          state.auth.role = "moderator";
+          state.auth.activeModeratorId = matchedMod.id;
+          if (sideAdminBtn) sideAdminBtn.classList.remove("hidden");
+          if (footerAdminBtn) footerAdminBtn.classList.remove("hidden");
+        } else {
+          state.auth.role = "visitor";
+          if (sideAdminBtn) sideAdminBtn.classList.add("hidden");
+          if (footerAdminBtn) footerAdminBtn.classList.add("hidden");
+        }
+      }
+      renderRoleAndPermissionsUI();
+      if (state.currentView === "admin" && state.auth.role === "visitor") {
+        switchView("home");
+      } else {
+        switchView(state.currentView);
+      }
+    }
+
+    // تطبيق وضع الزائر فوراً لكل من يفتح الموقع
+    applyRealSecurity(null);
+
+    // مراقبة حالة تسجيل الدخول الحقيقية في Firebase
+    onAuthStateChanged(auth, (user) => {
+      applyRealSecurity(user);
+    });
+
+    // ربط زر تسجيل الدخول بحسابات Firebase الحقيقية
+    const oldSubmitBtn = document.getElementById("firebaseSignInSubmitBtn");
+    if (oldSubmitBtn) {
+      const newSubmitBtn = oldSubmitBtn.cloneNode(true);
+      oldSubmitBtn.parentNode.replaceChild(newSubmitBtn, oldSubmitBtn);
+      newSubmitBtn.addEventListener("click", async () => {
+        const email = document.getElementById("firebaseEmailInput").value.trim();
+        const pass = document.getElementById("firebasePasswordInput").value;
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          document.getElementById("firebaseAuthModal").classList.add("hidden");
+          showToast("✅ تم تسجيل الدخول بنجاح");
+        } catch (err) {
+          try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            document.getElementById("firebaseAuthModal").classList.add("hidden");
+            showToast("✅ تم إنشاء الحساب وتسجيل الدخول بنجاح");
+          } catch (err2) {
+            showToast("❌ تأكد من البريد أو كلمة المرور (6 أحرف على الأقل)");
+          }
+        }
+      });
+    }
+  });
+</script>
 </script></body></html>
