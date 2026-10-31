@@ -3372,3 +3372,49 @@
     }
   });
 </script>
+
+<!-- ==================== إصلاح تفاعل الأزرار والتبويبات بالكامل ==================== -->
+<script>
+  // يعمل هذا السكربت المتزامن قبل أي script type="module" وقبل DOMContentLoaded
+  // ليمنع حذف العناصر التي يربطها bindAllEvents() ويكتفي بإخفائها بصرياً عن الزوار
+  (function() {
+    const origRemove = Element.prototype.remove;
+    Element.prototype.remove = function() {
+      if (
+        this.id === "switchRoleOwnerBtn" ||
+        this.id === "firebaseRoleSelect" ||
+        (this.querySelector && (this.querySelector("#switchRoleOwnerBtn") || this.querySelector("#firebaseRoleSelect")))
+      ) {
+        this.style.display = "none";
+        this.classList.add("hidden");
+        return;
+      }
+      return origRemove.apply(this, arguments);
+    };
+
+    window.addEventListener("DOMContentLoaded", function() {
+      setTimeout(function() {
+        // إذا لم يقم المالك بحفظ أغانيه الخاصة بعد، ابدأ بموسوعة فارغة بدون الأغاني والتقييمات الوهمية
+        try {
+          if (!localStorage.getItem("iq_song_saved_state_v1") && !window.__PRELOADED_OWNER_STATE__) {
+            state.songs = [];
+            state.weeklyPool = [];
+            state.top100List = [];
+            state.favorites = [];
+            state.artists.forEach(function(a) {
+              a.songsCount = 0;
+              a.rating = 0;
+            });
+          }
+        } catch (e) {}
+
+        if (!state.auth.isLoggedIn) {
+          state.auth.role = "visitor";
+          document.body.classList.remove("is-authenticated-staff");
+        }
+        renderRoleAndPermissionsUI();
+        switchView(state.currentView || "home");
+      }, 10);
+    });
+  })();
+</script>
